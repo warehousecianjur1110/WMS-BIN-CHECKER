@@ -229,7 +229,18 @@
                width: '95%' // Sedikit lebih lebar agar muat 2 kolom informasi di kartu
              });
              document.getElementById('binCode').value = '';
+          } 
+          else if (response.type === 'POPUP_LIST') {
+             showAuditListPopup(binVal, response.products, response.suffix);
+          } else {
+             Swal.fire('Error!', response.message, 'error');
           }
+        } catch (error) {
+          Swal.fire('Koneksi Terputus', 'Gagal memproses kode bin.', 'error');
+        } finally {
+          btn.innerHTML = '🔍 Cek Bin Ini'; btn.disabled = false;
+        }
+      }
 
       function toggleRemark(idx, status, suffix) {
         const input12 = document.getElementById('remark_'+idx);
@@ -311,7 +322,7 @@
               if (['03','04','05'].includes(suffix)) {
                   let isVerified = document.getElementById('verified_'+i).value === 'true';
                   let remarkVal = document.getElementById('remark_'+i) ? document.getElementById('remark_'+i).value : '';
-                  if (statusVal === 'notmatch' && !isVerified) { Swal.showValidationMessage('Pastikan status "Not Match" sudah dicheck ke Stok!'); return false; }
+                  if (statusVal === 'notmatch' && !isVerified) { Swal.showValidationMessage('Pastikan status "Not Match" sudah dicheck ke Stok dan berstatus ✔ MATCH!'); return false; }
                   auditData.push({ row: products[i].row, status: statusVal, remark: remarkVal });
               } else {
                   let remark = document.getElementById('remark_'+i).value.trim();
