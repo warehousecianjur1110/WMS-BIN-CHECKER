@@ -167,28 +167,69 @@
         try {
           const response = await sendRequest({ action: 'checkBin', bin: binVal });
 
-          // POP-UP TRIGGER BILA SUDAH DILAKUKAN OPNAME (SCANNED)
+          // POP-UP TRIGGER BILA SUDAH DILAKUKAN OPNAME (SCANNED) - TAMPILAN BARU & MENARIK
           if (response.status === 'already_scanned') {
-             let htmlSummary = `<div style="text-align:left; font-size:0.85rem; padding: 10px; background: #f8f9fa; border-radius: 8px;">`;
-             if(response.summary.match.length > 0) htmlSummary += `<b class="text-success">✅ Match:</b><br>${response.summary.match.join('<br>')}<br><br>`;
-             if(response.summary.notmatch.length > 0) htmlSummary += `<b class="text-danger">❌ Not Match:</b><br>${response.summary.notmatch.join('<br>')}<br><br>`;
-             if(response.summary.empty.length > 0) htmlSummary += `<b class="text-warning">📭 Item Kosong:</b><br>${response.summary.empty.join('<br>')}`;
+             // Fungsi pembantu untuk membuat kartu produk di dalam popup
+             function createScannedCard(item, borderColor, icon, isNotMatch = false) {
+               return `
+                 <div style="border: 2px solid ${borderColor}; border-radius: 10px; padding: 12px; margin-bottom: 10px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                   <div style="display: flex; align-items: start; gap: 8px;">
+                     <span style="font-size: 1.1rem; margin-top: -2px;">${icon}</span>
+                     <div>
+                       <div style="font-weight: 800; color: #1565c0; font-size: 1rem; line-height: 1.2; margin-bottom: 4px;">
+                         ${item.name}
+                       </div>
+                       <div style="color: #616161; font-size: 0.85rem;">
+                         MID: <b style="color: #212121; font-weight: 700;">${item.mid}</b>
+                       </div>
+                       ${isNotMatch && item.remark ? `<div style="color: #d32f2f; font-size: 0.8rem; font-weight: 600; margin-top: 5px; background: #ffebee; padding: 3px 6px; border-radius: 4px; display: inline-block;">Keterangan: ${item.remark}</div>` : ''}
+                     </div>
+                   </div>
+                 </div>
+               `;
+             }
+
+             let htmlSummary = `<div style="text-align:left; font-family: 'Plus Jakarta Sans', sans-serif; max-height: 60vh; overflow-y: auto; padding-right: 5px;">`;
+
+             // Bagian ✅ MATCH (Hijau)
+             if(response.summary.match.length > 0) {
+               htmlSummary += `<h6 style="font-weight: 800; color: #2e7d32; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 2px solid #a5d6a7; padding-bottom: 3px; display: inline-block;">✅ Produk Match</h6>`;
+               response.summary.match.forEach(item => {
+                 htmlSummary += createScannedCard(item, '#a5d6a7', '👍');
+               });
+               htmlSummary += '<div style="margin-bottom: 15px;"></div>'; // Spasi antar bagian
+             }
+
+             // Bagian ❌ NOT MATCH (Merah)
+             if(response.summary.notmatch.length > 0) {
+               htmlSummary += `<h6 style="font-weight: 800; color: #c62828; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 2px solid #ef9a9a; padding-bottom: 3px; display: inline-block;">❌ Produk Not Match</h6>`;
+               response.summary.notmatch.forEach(item => {
+                 htmlSummary += createScannedCard(item, '#ef9a9a', '⚠️', true);
+               });
+               htmlSummary += '<div style="margin-bottom: 15px;"></div>';
+             }
+
+             // Bagian 📭 ITEM KOSONG (Kuning)
+             if(response.summary.empty.length > 0) {
+               htmlSummary += `<h6 style="font-weight: 800; color: #f57f17; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; margin-bottom: 8px; border-bottom: 2px solid #ffe082; padding-bottom: 3px; display: inline-block;">📭 Bin Kosong (Item Kosong)</h6>`;
+               response.summary.empty.forEach(item => {
+                 htmlSummary += createScannedCard(item, '#ffe082', '👻');
+               });
+             }
+
              htmlSummary += `</div>`;
              
-             Swal.fire({ icon: 'info', title: `Bin ${response.bin} Sudah Diaudit!`, html: htmlSummary, confirmButtonColor: '#2c3e50' });
+             // Tampilkan Popup dengan tampilan baru yang menarik
+             Swal.fire({
+               title: `<span style="font-weight: 800; font-size: 1.15rem;">Bin <b style="color: #b71c1c;">${response.bin}</b> Sudah Diaudit!</span>`,
+               html: htmlSummary,
+               icon: 'info',
+               confirmButtonColor: '#2c3e50',
+               customClass: { popup: 'rounded-4' },
+               width: '95%' // Sedikit lebih lebar agar muat 2 kolom informasi di kartu
+             });
              document.getElementById('binCode').value = '';
-          } 
-          else if (response.type === 'POPUP_LIST') {
-             showAuditListPopup(binVal, response.products, response.suffix);
-          } else {
-             Swal.fire('Error!', response.message, 'error');
           }
-        } catch (error) {
-          Swal.fire('Koneksi Terputus', 'Gagal memproses kode bin.', 'error');
-        } finally {
-          btn.innerHTML = '🔍 Cek Bin Ini'; btn.disabled = false;
-        }
-      }
 
       function toggleRemark(idx, status, suffix) {
         const input12 = document.getElementById('remark_'+idx);
